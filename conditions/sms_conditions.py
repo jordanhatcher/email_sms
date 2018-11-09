@@ -7,7 +7,7 @@ Contains the SMSConditions class
 import logging
 import re
 from pubsub import pub
-from ....condition import Condition
+from condition import Condition
 
 LOGGER = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ class SMSConditions(Condition):
         """
 
         Condition.__init__(self, scheduler, schedule=None)
-        pub.subscribe(self.evaluate, 'messages.pipe_node')
+        pub.subscribe(self.evaluate, 'messages')
         LOGGER.debug('Initialized')
 
     def evaluate(self, msg):
@@ -38,14 +38,19 @@ class SMSConditions(Condition):
         LOGGER.info('Evaluating')
         LOGGER.debug(msg['content'])
 
-        # "^send <mesage> to <recipient>$"
-        match = re.search('^send\s(.*)\sto\s(\w+)$', msg['content'])
-        if match is not None:
-            message =  match.group(1)
-            recipient = match.group(2)
+        if msg.get('_type') == 'sms':
+            message = msg['content'].get('message')
+            recipient = msg['content'].get('recipient')
+        else:
+            # "^send <mesage> to <recipient>$"
+            match = re.search('^send\s(.*)\sto\s(\w+)$', msg['content'])
+            if match is not None:
+                message =  match.group(1)
+                recipient = match.group(2)
 
-        LOGGER.info(f'Sending SMS message to {recipient}: {message}')
-        pub.sendMessage('sms_node.send', msg={
-            'recipient': recipient,
-            'message': message
-        })
+        if message is not None and recipient is not None:
+            LOGGER.info(f'Sending SMS message to {recipient}: {message}')
+            pub.sendMessage('sms_node.send', msg={
+                'recipient': recipient,
+                'message': message
+            })
