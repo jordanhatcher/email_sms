@@ -44,7 +44,7 @@ class SMSNode(Node):
         """
 
         recipient = msg['recipient']
-        message = msg['message']
+        message = '\n' + msg['message']
         recipient_email = self.recipient_sms_gateway_map[recipient]
 
         try:
